@@ -1,0 +1,138 @@
+;; The first three lines of this file were inserted by DrRacket. They record metadata
+;; about the language level of this file in a form that our tools can easily process.
+#reader(lib "htdp-beginner-abbr-reader.ss" "lang")((modname 195-198) (read-case-sensitive #t) (teachpacks ((lib "image.rkt" "teachpack" "2htdp"))) (htdp-settings #(#t constructor repeating-decimal #f #t none #f ((lib "image.rkt" "teachpack" "2htdp")) #f)))
+(require 2htdp/batch-io)
+
+; A Letter is one of the following 1Strings: 
+; – "a"
+; – ... 
+; – "z"
+; or, equivalently, a member? of this list: 
+(define LETTERS
+  (explode "abcdefghijklmnopqrstuvwxyz"))
+
+; On OS X: 
+(define LOCATION "/usr/share/dict/words")
+; On LINUX: /usr/share/dict/words or /var/lib/dict/words
+; On WINDOWS: borrow the word file from your Linux friend
+ 
+; A Dictionary is a List-of-strings.
+(define AS-LIST (read-lines LOCATION))
+
+; Letter Dictionary -> Number
+; counts how many words in the given dictionary dict
+; start with the letter l
+
+(check-expect (starts-with# "z" (list "mama" "myla" "ramu")) 0)
+(check-expect (starts-with# "r" (list "mama" "myla" "ramu")) 1)
+(check-expect (starts-with# "m" (list "mama" "myla" "ramu")) 2)
+
+(define (starts-with# l dict)
+  (cond
+    [(empty? dict) 0]
+    [else (+
+           (if (string=? (substring  (first dict) 0 1) l) 1 0)
+           (starts-with# l (rest dict)))]))
+
+;; Exercise 196
+
+(define-struct LC [letter count])
+; LC (abbriveation of Letter-Counts) is a structure:
+; (make-LC Letter Number)
+
+; List-of-LC is one of:
+; - '()
+; - (cons LC List-of-LC)
+; interpretation is a list of Letter-Counts(LC)
+
+; List-of-letters is one of:
+; - '()
+; - (cons Letters List-of-letters)
+; interpretation is a list of Letters
+
+; List-of-letters -> List-of-LC
+; returns initalised list-of-LC from provided List-of-letters lol
+(check-expect (length (empty-loc LETTERS)) (length LETTERS))
+(define (empty-loc lol)
+  (cond
+    [(empty? lol) '()]
+    [else (cons (make-LC (first lol) 0) (empty-loc (rest lol)))]))
+
+(define empty-letters-loc (empty-loc LETTERS))
+
+; List-of-LC Letter Number -> List-of-LC
+; returns List-of-LC with incremented by 1 n LC for l letter
+(define (find-and-increment-LC lol l)
+  (cond
+    [(empty? lol) '()]
+    [else (if
+           (string=? l (LC-letter (first lol)))
+           (cons
+             (make-LC (LC-letter (first lol)) (+ 1 (LC-count (first lol))))
+             (find-and-increment-LC (rest lol) l))
+           (cons (first lol) (find-and-increment-LC (rest lol) l)))]))
+
+(define non-empty-letters-loc (find-and-increment-LC empty-letters-loc "z")) 
+
+; List-of-LC -> Number
+; sum all counters into individual LC of List-of-LC
+
+(check-expect (sum-counters-lol empty-letters-loc) 0)
+(check-expect (sum-counters-lol non-empty-letters-loc) 1)
+
+(define (sum-counters-lol lol)
+  (cond
+    [(empty? lol) 0]
+    [else (+ (LC-count (first lol)) (sum-counters-lol (rest lol)))]))
+
+; Dictionary -> List-of-LC
+; consumes a Dictionary dict and counts how often each letter is used
+; as the first one of a word in a given Dictionary
+
+(define (count-by-letter dict)
+  (cond
+    [(empty? dict) empty-letters-loc]
+    [else
+     (find-and-increment-LC
+      (count-by-letter (rest dict))
+      (substring (first dict) 0 1))]))
+
+;; Exercise 197
+
+; List-of-LC Number -> LC
+
+(define empty-lc (make-LC "" 0))
+
+(define (find-most-fequent-LC lol lc)
+  (cond
+    [(empty? lol) lc]
+    [else (if
+           (> (LC-count (first lol)) (LC-count lc))
+           (find-most-fequent-LC (rest lol) (first lol))
+           (find-most-fequent-LC (rest lol) lc))]))
+
+; Dictionary -> LC
+; consumes a Dictionary. It produces the Letter-Count for the letter
+; that occurs most often as the first one in the given Dictionary.
+(define (most-frequent dict)
+ (find-most-fequent-LC (count-by-letter dict) empty-lc))
+
+(most-frequent AS-LIST)
+
+(count-by-letter AS-LIST)
+
+; i am prefering second variant because it will be enough to use
+; the first element or the last element of given sorted List-of-LC
+
+
+;; Exercise 198
+
+; List-of-Dictionarys is one of:
+; - '()
+; - (cons Dictionary List-of-Dictionarys)
+
+; Dictionary -> List-of-Dictionarys
+(define (words-by-first-letter dict)
+  (cond
+    [(empty? dict) '()]
+    [else (words-by-first-letter (rest dict))]))

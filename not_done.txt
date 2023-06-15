@@ -1,0 +1,18 @@
+185 - partly done
+198
+212-214
+259
+274
+16.8 (275 - 278)
+295
+337
+340 redo
+342 - 344340 redo
+342 - 344340 redo
+342 - 344
+357-362
+V.27 Variations on the Theme
+V.28 Mathematical Examples
+V.29 Algorithms that Backtrack
+Intermezzo 5: The Cost of Computation
+Accumulators

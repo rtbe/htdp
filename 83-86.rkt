@@ -1,0 +1,107 @@
+;; The first three lines of this file were inserted by DrRacket. They record metadata
+;; about the language level of this file in a form that our tools can easily process.
+#reader(lib "htdp-beginner-reader.ss" "lang")((modname 83-86) (read-case-sensitive #t) (teachpacks ((lib "image.rkt" "teachpack" "2htdp"))) (htdp-settings #(#t constructor repeating-decimal #f #t none #f ((lib "image.rkt" "teachpack" "2htdp")) #f)))
+(require 2htdp/universe)
+
+(define-struct editor [pre post])
+; An Editor is a structure:
+;   (make-editor String String)
+; interpretation (make-editor s t) describes an editor
+; whose visible text is (string-append s t) with 
+; the cursor displayed between s and t
+
+(define HEIGHT 20)
+(define WIDTH 200)
+(define BCKG (empty-scene WIDTH HEIGHT))
+(define CURSOR (rectangle 1 20 "solid" "red"))
+(define FONT-SIZE 16)
+(define MAX-NUM-OF-STRINGS (quotient WIDTH FONT-SIZE))
+
+; String -> String
+; returns first string from s
+(check-expect (string-first "loh") "l")
+(define (string-first s)
+  (if (> (string-length s) 0) (string-ith s 0) ""))
+
+; String -> String
+; returns first string from s
+(check-expect (string-remove-first "loh") "oh")
+(check-expect (string-remove-first "") "")
+(define (string-remove-first s)
+  (if  (> (string-length s) 0) (substring s 1) ""))
+
+; String -> String
+; returns last string from s,
+; if s is empty, returns ""
+(check-expect (string-last "loh") "h")
+(define (string-last s)
+  (if (> (string-length s) 0)
+      (string-ith s (- (string-length s) 1))
+      ""))
+
+; String -> String
+; returns string up to last string in s,
+; if s is empty, returns ""
+(check-expect (string-remove-last "loh") "lo")
+(check-expect (string-remove-last "l") "")
+(check-expect (string-remove-last "") "")
+(define (string-remove-last s)
+  (if (> (string-length s) 0)
+      (substring s 0 (- (string-length s) 1))
+      ""))
+
+; String -> Image
+; returns text from provided string s
+(check-expect (make-text "hello world") (text "hello world" FONT-SIZE "black"))
+(define (make-text s) (text s 16 "black"))
+
+(define ED (make-editor "W" "orld!"))
+
+; Editor -> Image
+; renders text within an empty scene;
+(define (render ed)
+  (overlay/align "left" "center"
+                 (beside (make-text (editor-pre ed))
+                         CURSOR
+                         (make-text (editor-post ed)))
+                 BCKG))
+(render (make-editor "" ""))
+
+; Editor, KeyEvent -> Editor
+; Its task is to add a single-character KeyEvent ke to the end of the pre field of ed,
+; unless ke denotes the backspace ("\b") key.
+; In that case, it deletes the character immediately to the left of the cursor(if there are any).
+; The function ignores the tab key ("\t") and the return key ("\r").
+
+(check-expect (edit (make-editor "Hello World" "") "left")(make-editor "Hello Worl" "d"))
+(check-expect (edit (make-editor "Hell" "o World") "left")(make-editor "Hel" "lo World"))
+(check-expect (edit (make-editor "" "Hello World") "left")(make-editor "" "Hello World"))
+(check-expect (edit (make-editor "" "") "left")(make-editor "" ""))
+
+(check-expect (edit (make-editor "Hello World" "") "right")(make-editor "Hello World" ""))
+(check-expect (edit (make-editor "Hell" "o World") "right")(make-editor "Hello" " World"))
+(check-expect (edit (make-editor "" "Hello World") "right")(make-editor "H" "ello World"))
+(check-expect (edit (make-editor "" "") "right")(make-editor "" ""))
+(check-expect (edit (make-editor "b" "b") "right")(make-editor "bb" ""))
+(check-expect (edit (make-editor "" "bb") "right")(make-editor "b" "b"))
+
+(define (edit ed ky)
+  (cond
+    [(or (key=? ky "\t") (key=? ky "\r")) ed]
+    [(key=? ky "\b")(make-editor (string-remove-last (editor-pre ed)) (editor-post ed))]
+    [(key=? ky "left")(make-editor (string-remove-last (editor-pre ed))
+                                   (string-append (string-last (editor-pre ed)) (editor-post ed)))]
+    [(key=? ky "right")(make-editor (string-append (editor-pre ed) (string-first (editor-post ed)))
+                                    (string-remove-first (editor-post ed)))]
+    [else (if
+           (< (image-width (make-text (string-append (editor-pre ed) (editor-post ed)))) WIDTH)
+           (make-editor (string-append (editor-pre ed) ky) (editor-post ed))
+           ed)]))
+
+; Editor -> Editor
+(define (run s)
+  (big-bang s
+    [to-draw render]
+    [on-key edit]))
+
+(run (make-editor "Hello World" ""))
